@@ -3,20 +3,33 @@ use std::{error::Error, num::ParseIntError, str::FromStr};
 use crate::day::{Day, DayResult, PartResult};
 
 pub struct Day1 {
-    input: &'static str
+    input: &'static str,
 }
 
 impl Day1 {
     pub fn new() -> Day1 {
-        Day1 {input: include_str!("inputs/day1.txt")}
+        Day1 {
+            input: include_str!("inputs/day1.txt"),
+        }
     }
 }
 
 impl Day for Day1 {
     fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
         let elves = parse_input(self.input)?;
-        let most_calorific_elf = most_calorific_elf(&elves).ok_or_else(|| "There may not have been any elves".to_string())?;
-        Ok(DayResult::new(PartResult::Success(format!("Most calorific elf has {} calories", most_calorific_elf)), PartResult::NotImplemented))
+        let most_calorific_elf = most_calorific_elf(&elves)
+            .ok_or_else(|| "There may not have been any elves".to_string())?;
+        let part2 = top_three_most_calorific_elves(&elves);
+        Ok(DayResult::new(
+            PartResult::Success(format!(
+                "Most calorific elf has {} calories",
+                most_calorific_elf
+            )),
+            PartResult::Success(format!(
+                "Top 3 most calorific elves have {} calories",
+                part2
+            )),
+        ))
     }
 }
 
@@ -29,8 +42,7 @@ fn parse_input(input: &str) -> Result<Vec<Vec<u32>>, ParseIntError> {
         if !line.is_empty() {
             let n = u32::from_str(line)?;
             current_elf.push(n);
-        }
-        else {
+        } else {
             elves.push(current_elf);
             current_elf = Vec::new();
         }
@@ -44,6 +56,16 @@ fn parse_input(input: &str) -> Result<Vec<Vec<u32>>, ParseIntError> {
 
 fn most_calorific_elf(elves: &[Vec<u32>]) -> Option<u32> {
     elves.iter().map(|elf| elf.iter().sum()).max()
+}
+
+fn top_three_most_calorific_elves(elves: &[Vec<u32>]) -> u32 {
+    let mut calories = elves
+        .iter()
+        .map(|elf| elf.iter().sum::<u32>())
+        .collect::<Vec<_>>();
+    calories.sort();
+    calories.reverse();
+    calories.into_iter().take(3).sum()
 }
 
 #[test]
