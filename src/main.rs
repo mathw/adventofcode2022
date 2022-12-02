@@ -9,6 +9,7 @@ extern crate lazy_static;
 
 mod day;
 mod day1;
+mod day2;
 
 fn main() {
     simple_logger::SimpleLogger::new().env().init().unwrap();
@@ -32,6 +33,7 @@ fn main() {
             let mut day = day1::Day1::new();
             day.run()
         }),
+        "2" => run_day(2, || day2::Day2::new().run()),
         _ => log::error!("Unimplemented day {}", day),
     }
 }
