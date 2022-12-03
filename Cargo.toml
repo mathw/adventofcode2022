@@ -10,3 +10,4 @@ lazy_static = "*"
 log = "0.4"
 simple_logger = { version = "1.13.0", default-features = false, features = ["colors"] }
 clap = "2.33.3"
+itertools = "0.10.5"
