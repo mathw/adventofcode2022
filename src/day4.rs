@@ -1,5 +1,5 @@
 use crate::day::{Day, DayResult, PartResult};
-use std::{error::Error, fmt::Debug, str::FromStr};
+use std::{collections::HashSet, error::Error, fmt::Debug, str::FromStr};
 
 pub struct Day4 {
     input: &'static str,
@@ -20,9 +20,11 @@ impl Day for Day4 {
             "There are {} pairs with a fully contained assignment",
             contained_pairs.count()
         );
+        let overlapped_pairs = all_overlapped_pairs(self.input).expect("Expected parseable input for part 2");
+        let part2_result = format!("There are {} pairs with any overlap", overlapped_pairs.count());
         Ok(DayResult::new(
             PartResult::Success(part1_result),
-            PartResult::NotImplemented,
+            PartResult::Success(part2_result)
         ))
     }
 }
@@ -31,6 +33,16 @@ impl Day for Day4 {
 struct Assignment {
     lower: u32,
     upper: u32,
+}
+
+impl Assignment {
+    fn expand(&self) -> HashSet<u32> {
+        let mut s = HashSet::new();
+        for n in self.lower..=self.upper {
+            s.insert(n);
+        }
+        s
+    }
 }
 
 impl Debug for Assignment {
@@ -76,6 +88,17 @@ impl Pair {
     fn right_fully_contains_left(&self) -> bool {
         self.right.lower <= self.left.lower && self.right.upper >= self.left.upper
     }
+
+    fn has_overlap(&self) -> bool {
+        // okay I could do this with some bounds comparisons but I haven't had breakfast and I can't
+        // be bothered to think through all the permutations
+        // but really allocating all these unnecessary HashSets is a bit silly
+        self.left
+            .expand()
+            .intersection(&self.right.expand())
+            .next()
+            .is_some()
+    }
 }
 
 impl Debug for Pair {
@@ -107,6 +130,14 @@ fn all_contained_pairs(input: &str) -> Result<impl Iterator<Item = Pair>, <Pair 
         .map(Pair::from_str)
         .collect::<Result<Vec<Pair>, _>>()?;
     Ok(pairs.into_iter().filter(|p| p.one_fully_contains_other()))
+}
+
+fn all_overlapped_pairs(input: &str) -> Result<impl Iterator<Item = Pair>, <Pair as FromStr>::Err> {
+    let pairs = input
+        .lines()
+        .map(Pair::from_str)
+        .collect::<Result<Vec<Pair>, _>>()?;
+    Ok(pairs.into_iter().filter(|p| p.has_overlap()))
 }
 
 #[cfg(test)]
