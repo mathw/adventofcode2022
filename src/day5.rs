@@ -19,9 +19,11 @@ impl Day for Day5 {
         let moves = parse_input_instructions(self.input)?;
         let stacks = stacks_input();
         let part1_answer = run_part1(&moves, stacks)?;
+        let stacks = stacks_input();
+        let part2_answer = run_part2(&moves, stacks)?;
         Ok(DayResult::new(
             PartResult::Success(part1_answer),
-            PartResult::NotImplemented,
+            PartResult::Success(part2_answer),
         ))
     }
 }
@@ -31,6 +33,15 @@ fn run_part1(moves: &[Move], mut stacks: Stacks) -> Result<String, String> {
         if !stacks.run_move(m) {
             return Err(format!("Move {:?} failed!", m));
         }
+    }
+    Ok(stacks.read_tops())
+}
+
+fn run_part2(moves: &[Move], mut stacks: Stacks) -> Result<String, String> {
+    for m in moves {
+        stacks
+            .run_move_cratemover_9001(m)
+            .ok_or_else(|| format!("Move failed"))?;
     }
     Ok(stacks.read_tops())
 }
@@ -49,6 +60,16 @@ impl Stack {
 
     fn push(&mut self, item: char) {
         self.0.push(item)
+    }
+
+    fn pop_many(&mut self, count: u8) -> Vec<char> {
+        self.0.split_off(self.0.len() - (count as usize))
+    }
+
+    fn push_many(&mut self, items: &[char]) {
+        for i in items {
+            self.0.push(*i)
+        }
     }
 
     fn peek_top(&self) -> Option<char> {
@@ -133,6 +154,12 @@ impl Stacks {
         Some(())
     }
 
+    fn run_move_cratemover_9001(&mut self, m: &Move) -> Option<()> {
+        let removed = self.0.get_mut(&m.from)?.pop_many(m.count);
+        self.0.get_mut(&m.to)?.push_many(&removed);
+        Some(())
+    }
+
     fn read_tops(&self) -> String {
         let mut indexes: Vec<u8> = self.0.keys().cloned().collect();
         indexes.sort();
@@ -201,4 +228,20 @@ move 1 from 1 to 2",
     let result = run_part1(&moves, stacks).expect("I expect success");
 
     assert_eq!(&result, "CMZ");
+}
+
+#[test]
+fn test_part2_sample() {
+    let stacks = stacks_test_input();
+    let moves = parse_input_instructions(
+        "move 1 from 2 to 1
+move 3 from 1 to 3
+move 2 from 2 to 1
+move 1 from 1 to 2",
+    )
+    .expect("These moves should parse");
+
+    let result = run_part2(&moves, stacks).expect("I expect success");
+
+    assert_eq!(&result, "MCD");
 }
