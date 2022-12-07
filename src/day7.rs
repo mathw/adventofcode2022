@@ -70,7 +70,7 @@ enum InputLine<'a> {
     Result(DirEntry<'a>),
 }
 
-fn parse_input_line<'a>(line: &'a str) -> Result<InputLine<'a>, Box<dyn Error>> {
+fn parse_input_line(line: &str) -> Result<InputLine<'_>, Box<dyn Error>> {
     lazy_static! {
         static ref FILE_REGEX: Regex = Regex::new(r"^(\d+) (.+)$").unwrap();
     }
@@ -82,10 +82,10 @@ fn parse_input_line<'a>(line: &'a str) -> Result<InputLine<'a>, Box<dyn Error>> 
         Ok(InputLine::Command(Command::List))
     } else if line == "$ cd .." {
         Ok(InputLine::Command(Command::CDOut))
-    } else if line.starts_with("$ cd ") {
-        Ok(InputLine::Command(Command::CDIn(&line[5..])))
-    } else if line.starts_with("dir ") {
-        Ok(InputLine::Result(DirEntry::Directory(&line[4..])))
+    } else if let Some(dirname) = line.strip_prefix("$ cd ") {
+        Ok(InputLine::Command(Command::CDIn(dirname)))
+    } else if let Some(dirname) = line.strip_prefix("dir ") {
+        Ok(InputLine::Result(DirEntry::Directory(dirname)))
     } else {
         let mut parts = line.split_whitespace();
         let size = parts
@@ -102,7 +102,7 @@ fn parse_input_line<'a>(line: &'a str) -> Result<InputLine<'a>, Box<dyn Error>> 
     }
 }
 
-fn parse_input<'a>(input: &'a str) -> Result<Vec<InputLine<'a>>, Box<dyn Error>> {
+fn parse_input(input: &str) -> Result<Vec<InputLine<'_>>, Box<dyn Error>> {
     input.lines().map(parse_input_line).collect()
 }
 
