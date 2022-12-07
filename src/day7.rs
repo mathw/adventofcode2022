@@ -18,20 +18,34 @@ impl Day7 {
 
 impl Day for Day7 {
     fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
-        let part1_result = run_part1(self.input)?;
+        let instructions = parse_input(self.input)?;
+        let tree = build_directory_tree(&instructions)?;
+        let part1_result = run_part1(&tree);
+        let part2_result = run_part2(&tree);
         Ok(DayResult::new(
             PartResult::Success(part1_result.to_string()),
-            PartResult::NotImplemented,
+            PartResult::Success(part2_result.to_string()),
         ))
     }
 }
 
-fn run_part1(input: &str) -> Result<usize, Box<dyn Error>> {
-    let instructions = parse_input(input)?;
-    let tree = build_directory_tree(&instructions)?;
-    let small = tree.find_directories(|d| d.total_size() <= 100000);
-    let sum = small.map(|d| d.total_size()).sum();
-    Ok(sum)
+fn run_part1(tree: &Directory) -> usize {
+    tree.find_directories(|d| d.total_size() <= 100000)
+        .map(|d| d.total_size())
+        .sum()
+}
+
+fn run_part2(tree: &Directory) -> usize {
+    let total_space = 70000000;
+    let required_space = 30000000;
+    let current_used_space = tree.total_size();
+    let current_available_space = total_space - current_used_space;
+    let must_delete_space = required_space - current_available_space;
+    let mut candidates = tree
+        .find_directories(|d| d.total_size() >= must_delete_space)
+        .collect::<Vec<_>>();
+    candidates.sort_by_key(|a| a.total_size());
+    candidates[0].total_size()
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -316,9 +330,8 @@ $ ls
     assert_eq!(dir.directories[0].directories[0].total_size(), 2);
 }
 
-#[test]
-fn test_part1_sample() {
-    let input = "$ cd /
+#[cfg(test)]
+const INPUT: &str = "$ cd /
 $ ls
 dir a
 14848514 b.txt
@@ -341,6 +354,24 @@ $ ls
 8033020 d.log
 5626152 d.ext
 7214296 k";
-    let result = run_part1(input).expect("This should work");
+
+#[cfg(test)]
+fn build_sample_input_tree() -> Directory<'static> {
+    let tree = build_directory_tree(&parse_input(INPUT).expect("Input should parse"))
+        .expect("Tree should build");
+    tree
+}
+
+#[test]
+fn test_part1_sample() {
+    let tree = build_sample_input_tree();
+    let result = run_part1(&tree);
     assert_eq!(result, 95437);
+}
+
+#[test]
+fn test_part2_sample() {
+    let tree = build_sample_input_tree();
+    let result = run_part2(&tree);
+    assert_eq!(result, 24933642);
 }
