@@ -140,7 +140,7 @@ impl Guide {
     }
 }
 
-fn transform_input_for_part2(part1_input: &Vec<Move>) -> Vec<Guide> {
+fn transform_input_for_part2(part1_input: &[Move]) -> Vec<Guide> {
     part1_input
         .iter()
         .map(|m| {
@@ -157,7 +157,7 @@ fn transform_input_for_part2(part1_input: &Vec<Move>) -> Vec<Guide> {
 }
 
 #[cfg(test)]
-const SAMPLE_INPUT: &'static str = "A Y
+const SAMPLE_INPUT: &str = "A Y
 B X
 C Z";
 

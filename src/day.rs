@@ -43,7 +43,7 @@ impl Display for PartResult {
 
 impl Display for DayResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(f, "PART ONE: {}\n", self.part1)?;
-        write!(f, "PART TWO: {}\n", self.part2)
+        writeln!(f, "PART ONE: {}", self.part1)?;
+        writeln!(f, "PART TWO: {}", self.part2)
     }
 }

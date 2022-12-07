@@ -20,11 +20,15 @@ impl Day for Day4 {
             "There are {} pairs with a fully contained assignment",
             contained_pairs.count()
         );
-        let overlapped_pairs = all_overlapped_pairs(self.input).expect("Expected parseable input for part 2");
-        let part2_result = format!("There are {} pairs with any overlap", overlapped_pairs.count());
+        let overlapped_pairs =
+            all_overlapped_pairs(self.input).expect("Expected parseable input for part 2");
+        let part2_result = format!(
+            "There are {} pairs with any overlap",
+            overlapped_pairs.count()
+        );
         Ok(DayResult::new(
             PartResult::Success(part1_result),
-            PartResult::Success(part2_result)
+            PartResult::Success(part2_result),
         ))
     }
 }
@@ -141,7 +145,7 @@ fn all_overlapped_pairs(input: &str) -> Result<impl Iterator<Item = Pair>, <Pair
 }
 
 #[cfg(test)]
-const SAMPLE_INPUT: &'static str = "2-4,6-8
+const SAMPLE_INPUT: &str = "2-4,6-8
 2-3,4-5
 5-7,7-9
 2-8,3-7
@@ -172,7 +176,7 @@ fn test_containment() {
     assert!(pair.one_fully_contains_other());
 
     let pair = Pair::from_str("1-2,3-4").unwrap();
-    assert_eq!(pair.one_fully_contains_other(), false);
+    assert!(!pair.one_fully_contains_other());
 }
 
 #[test]

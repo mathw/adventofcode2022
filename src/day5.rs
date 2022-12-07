@@ -41,7 +41,7 @@ fn run_part2(moves: &[Move], mut stacks: Stacks) -> Result<String, String> {
     for m in moves {
         stacks
             .run_move_cratemover_9001(m)
-            .ok_or_else(|| format!("Move failed"))?;
+            .ok_or_else(|| "Move failed".to_string())?;
     }
     Ok(stacks.read_tops())
 }
@@ -73,10 +73,10 @@ impl Stack {
     }
 
     fn peek_top(&self) -> Option<char> {
-        if self.0.len() > 0 {
-            Some(self.0[self.0.len() - 1])
-        } else {
+        if self.0.is_empty() {
             None
+        } else {
+            Some(self.0[self.0.len() - 1])
         }
     }
 }
@@ -121,7 +121,7 @@ impl FromStr for Move {
 fn parse_input_instructions(instructions: &str) -> Result<Vec<Move>, Box<dyn Error>> {
     instructions
         .lines()
-        .map(|l| Move::from_str(l))
+        .map(Move::from_str)
         .collect::<Result<Vec<Move>, _>>()
 }
 

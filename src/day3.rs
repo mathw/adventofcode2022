@@ -44,17 +44,17 @@ fn find_duplicate(compartments: (&str, &str)) -> Option<char> {
     overlap.cloned().next()
 }
 
-fn duplicates_in_input<'a>(input: &'a str) -> impl Iterator<Item = char> + 'a {
+fn duplicates_in_input(input: &str) -> impl Iterator<Item = char> + '_ {
     input
         .lines()
         .filter_map(|l| split_rucksack(l.trim()))
-        .filter_map(|r| find_duplicate(r))
+        .filter_map(find_duplicate)
 }
 
 fn item_priority(i: char) -> u8 {
     match i {
-        x if x >= 'a' && x <= 'z' => (i as u8 - 'a' as u8) + 1,
-        x if x >= 'A' && x <= 'Z' => (i as u8 - 'A' as u8) + 27,
+        x if ('a'..='z').contains(&x) => (i as u8 - b'a') + 1,
+        x if ('A'..='Z').contains(&x) => (i as u8 - b'A') + 27,
         _ => 0,
     }
 }
