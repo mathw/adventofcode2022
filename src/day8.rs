@@ -9,7 +9,7 @@ pub struct Day8 {
 impl Day8 {
     pub fn new() -> Day8 {
         Day8 {
-            input: include_str!("inputs/day7.txt"),
+            input: include_str!("inputs/day8.txt"),
         }
     }
 }

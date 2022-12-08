@@ -7,6 +7,7 @@ use std::time::Instant;
 #[macro_use]
 extern crate lazy_static;
 
+mod common;
 mod day;
 mod day1;
 mod day2;
