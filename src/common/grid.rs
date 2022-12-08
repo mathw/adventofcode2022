@@ -68,15 +68,11 @@ impl<T> Grid<T> {
         y: usize,
         predicate: impl Fn(&T) -> bool,
     ) -> Result<bool, GridOperationError> {
-        let start_index = self.index_of(0, y)?;
-        let end_index = self.index_of(x, y)?;
-
-        for item in &self.content[start_index..end_index] {
-            if !predicate(item) {
-                return Ok(false);
-            }
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_left_of(x, y).all(predicate))
         }
-        Ok(true)
     }
 
     pub fn all_right_of(
@@ -85,19 +81,11 @@ impl<T> Grid<T> {
         y: usize,
         predicate: impl Fn(&T) -> bool,
     ) -> Result<bool, GridOperationError> {
-        if x == self.max_x() {
-            return Ok(true);
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_right_of(x, y).all(predicate))
         }
-
-        let start_index = self.index_of(x + 1, y)?;
-        let end_index = self.index_of(self.max_x(), y)?;
-
-        for item in &self.content[start_index..=end_index] {
-            if !predicate(item) {
-                return Ok(false);
-            }
-        }
-        Ok(true)
     }
 
     pub fn all_above(
@@ -106,12 +94,11 @@ impl<T> Grid<T> {
         y: usize,
         predicate: impl Fn(&T) -> bool,
     ) -> Result<bool, GridOperationError> {
-        for ty in 0..y {
-            if !predicate(self.get(x, ty)?) {
-                return Ok(false);
-            }
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_above(x, y).all(predicate))
         }
-        Ok(true)
     }
 
     pub fn all_below(
@@ -120,18 +107,128 @@ impl<T> Grid<T> {
         y: usize,
         predicate: impl Fn(&T) -> bool,
     ) -> Result<bool, GridOperationError> {
-        for ty in y + 1..self.max_y() {
-            if !predicate(self.get(x, ty)?) {
-                return Ok(false);
-            }
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_below(x, y).all(predicate))
         }
-        Ok(true)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
-        (0..self.height).flat_map(move |y| {
-            (0..self.width).map(move |x| self.get(x, y).expect("This should never fail"))
-        })
+    pub fn count_left_of(
+        &self,
+        x: usize,
+        y: usize,
+        predicate: impl Fn(&T) -> bool,
+    ) -> Result<usize, GridOperationError> {
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_left_of(x, y).filter(|i| predicate(i)).count())
+        }
+    }
+    pub fn count_right_of(
+        &self,
+        x: usize,
+        y: usize,
+        predicate: impl Fn(&T) -> bool,
+    ) -> Result<usize, GridOperationError> {
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_right_of(x, y).filter(|i| predicate(i)).count())
+        }
+    }
+    pub fn count_above(
+        &self,
+        x: usize,
+        y: usize,
+        predicate: impl Fn(&T) -> bool,
+    ) -> Result<usize, GridOperationError> {
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_above(x, y).filter(|i| predicate(i)).count())
+        }
+    }
+    pub fn count_below(
+        &self,
+        x: usize,
+        y: usize,
+        predicate: impl Fn(&T) -> bool,
+    ) -> Result<usize, GridOperationError> {
+        if self.out_of_bounds(x, y) {
+            Err(self.index_out_of_bounds(x, y))
+        } else {
+            Ok(self.iter_below(x, y).filter(|i| predicate(i)).count())
+        }
+    }
+
+    fn index_out_of_bounds(&self, x: usize, y: usize) -> GridOperationError {
+        GridOperationError::IndexOutOfBounds(x, y, self.width, self.height)
+    }
+
+    fn out_of_bounds(&self, x: usize, y: usize) -> bool {
+        x > self.max_x() || y > self.max_y()
+    }
+
+    pub fn iter_coords(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        (0..self.height).flat_map(move |y| (0..self.width).map(move |x| (x, y)))
+    }
+
+    pub fn iter_coords_left_of(
+        &self,
+        x: usize,
+        y: usize,
+    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        (0..x).rev().map(move |x| (x, y))
+    }
+
+    pub fn iter_coords_right_of(
+        &self,
+        x: usize,
+        y: usize,
+    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        (x..=self.max_x()).skip(1).map(move |x| (x, y))
+    }
+
+    pub fn iter_coords_above(
+        &self,
+        x: usize,
+        y: usize,
+    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        (0..y).rev().map(move |y| (x, y))
+    }
+
+    pub fn iter_coords_below(
+        &self,
+        x: usize,
+        y: usize,
+    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        (y..=self.max_y()).skip(1).map(move |y| (x, y))
+    }
+
+    pub fn iter_left_of(&self, x: usize, y: usize) -> impl Iterator<Item = &T> {
+        self.iter_coords_left_of(x, y)
+            .map(|(x, y)| self.get(x, y).unwrap())
+    }
+    pub fn iter_right_of(&self, x: usize, y: usize) -> impl Iterator<Item = &T> {
+        self.iter_coords_right_of(x, y)
+            .map(|(x, y)| self.get(x, y).unwrap())
+    }
+    pub fn iter_above(&self, x: usize, y: usize) -> impl Iterator<Item = &T> {
+        self.iter_coords_above(x, y)
+            .map(|(x, y)| self.get(x, y).unwrap())
+    }
+    pub fn iter_below(&self, x: usize, y: usize) -> impl Iterator<Item = &T> {
+        self.iter_coords_below(x, y)
+            .map(|(x, y)| self.get(x, y).unwrap())
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+    pub fn height(&self) -> usize {
+        self.height
     }
 
     fn max_x(&self) -> usize {
@@ -188,25 +285,16 @@ fn test_all_above() {
 #[test]
 fn test_all_below() {
     let mut grid = Grid::new(3, 3);
-    grid.set(0, 1, true).unwrap();
-    grid.set(0, 2, true).unwrap();
-    assert!(grid.all_below(0, 0, |i| *i).unwrap());
-    assert!(!grid.all_below(0, 0, |i| !*i).unwrap());
-    assert!(grid.all_below(0, 2, |i| *i).unwrap());
+    grid.set(1, 1, 1).unwrap();
+    grid.set(1, 2, 2).unwrap();
+    assert!(grid.all_below(1, 0, |t| *t >= 1).unwrap());
 }
 
 #[test]
-fn test_iter() {
-    let mut grid = Grid::new(2, 3);
-    grid.set(0, 0, 1).unwrap();
-    grid.set(1, 0, 2).unwrap();
-    grid.set(0, 1, 3).unwrap();
-    grid.set(1, 1, 4).unwrap();
-    grid.set(0, 2, 5).unwrap();
-    grid.set(1, 2, 6).unwrap();
-
+fn test_iter_coords() {
+    let grid: Grid<bool> = Grid::new(2, 3);
     assert_eq!(
-        grid.iter().cloned().collect::<Vec<_>>(),
-        vec![1, 2, 3, 4, 5, 6]
+        grid.iter_coords().collect::<Vec<_>>(),
+        vec![(0, 0), (1, 0), (0, 1), (1, 1), (0, 2), (1, 2)]
     );
 }
