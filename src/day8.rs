@@ -95,39 +95,33 @@ fn tree_is_visible(plantation: &Grid<u8>, x: usize, y: usize) -> bool {
     all_above || all_below || all_right_of || all_left_of
 }
 
+fn take_shorter_trees_then_first_taller<'a, I: Iterator<Item = &'a u8>>(
+    get_iter: impl Fn() -> I,
+    this_tree_height: u8,
+) -> impl Iterator<Item = &'a u8> {
+    get_iter()
+        .take_while(move |t| **t < this_tree_height)
+        .chain(
+            get_iter()
+                .skip_while(move |t| **t < this_tree_height)
+                .take(1),
+        )
+}
+
 fn scenic_score_of(plantation: &Grid<u8>, x: usize, y: usize) -> Result<u32, Box<dyn Error>> {
     let this_tree_height = plantation.get(x, y)?;
-    let mut visible_left = plantation
-        .iter_left_of(x, y)
-        .take_while(|t| *t < this_tree_height)
-        .count() as u32;
-    if x as u32 - visible_left >= 1 {
-        visible_left += 1;
-    }
-
-    let mut visible_right = plantation
-        .iter_right_of(x, y)
-        .take_while(|t| *t < this_tree_height)
-        .count() as u32;
-    if (plantation.width() - 1) as u32 - visible_right > x as u32 {
-        visible_right += 1;
-    }
-
-    let mut visible_above = plantation
-        .iter_above(x, y)
-        .take_while(|t| *t < this_tree_height)
-        .count() as u32;
-    if y as u32 - visible_above >= 1 {
-        visible_above += 1;
-    }
-
-    let mut visible_below = plantation
-        .iter_below(x, y)
-        .take_while(|t| *t < this_tree_height)
-        .count() as u32;
-    if (plantation.height() - 1) as u32 - visible_below > y as u32 {
-        visible_below += 1;
-    }
+    let visible_left =
+        take_shorter_trees_then_first_taller(|| plantation.iter_left_of(x, y), *this_tree_height)
+            .count() as u32;
+    let visible_right =
+        take_shorter_trees_then_first_taller(|| plantation.iter_right_of(x, y), *this_tree_height)
+            .count() as u32;
+    let visible_above =
+        take_shorter_trees_then_first_taller(|| plantation.iter_above(x, y), *this_tree_height)
+            .count() as u32;
+    let visible_below =
+        take_shorter_trees_then_first_taller(|| plantation.iter_below(x, y), *this_tree_height)
+            .count() as u32;
 
     Ok(visible_above * visible_below * visible_left * visible_right)
 }
