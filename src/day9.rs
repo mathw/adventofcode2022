@@ -95,13 +95,11 @@ fn parse_input(input: &str) -> Result<Vec<Step>, Box<dyn Error>> {
 }
 
 fn run_part1(steps: impl Iterator<Item = Step>) -> usize {
-    let mut rope = Rope::new(0, 0, 0, 0);
-    do_steps_to_rope(rope, steps)
+    do_steps_to_rope(Rope::new(0, 0, 0, 0), steps)
 }
 
 fn run_part2(steps: impl Iterator<Item = Step>) -> usize {
-    let mut rope = Rope::new_by_count(10);
-    do_steps_to_rope(rope, steps)
+    do_steps_to_rope(Rope::new_by_count(10), steps)
 }
 
 fn do_steps_to_rope(mut rope: Rope, steps: impl Iterator<Item = Step>) -> usize {
@@ -147,16 +145,11 @@ impl Location {
     }
 
     fn touches(&self, other: &Self) -> bool {
-        if self.x == other.x {
-            if self.y == other.y {
-                true
-            } else {
-                (self.y - other.y).abs() <= 1
-            }
-        } else if self.y == other.y {
-            (self.x - other.x).abs() <= 1
-        } else {
-            (self.y - other.y).abs() <= 1 && (self.x - other.x).abs() <= 1
+        match (self.x == other.x, self.y == other.y) {
+            (true, true) => true,
+            (true, false) => (self.y - other.y).abs() <= 1,
+            (false, true) => (self.x - other.x).abs() <= 1,
+            (false, false) => (self.y - other.y).abs() <= 1 && (self.x - other.x).abs() <= 1,
         }
     }
 }
@@ -204,11 +197,7 @@ impl Rope {
                 tail.x -= 1;
                 tail.y -= 1;
             }
-            (Ordering::Less, Ordering::Equal) => {
-                if tail.x - head.x > 1 {
-                    tail.x -= 1
-                }
-            }
+            (Ordering::Less, Ordering::Equal) => tail.x -= 1,
             (Ordering::Less, Ordering::Greater) => {
                 tail.x -= 1;
                 tail.y += 1;
