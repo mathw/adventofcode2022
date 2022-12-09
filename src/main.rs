@@ -48,6 +48,7 @@ fn main() {
         "6" => run_day(6, || day6::Day6::new().run()),
         "7" => run_day(7, || day7::Day7::new().run()),
         "8" => run_day(8, || day8::Day8::new().run()),
+        "9" => run_day(9, || day9::Day9::new().run()),
         _ => log::error!("Unimplemented day {}", day),
     }
 }
