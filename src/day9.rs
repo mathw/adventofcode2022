@@ -1,5 +1,7 @@
 use std::{cmp::Ordering, collections::HashSet, error::Error, str::FromStr};
 
+use itertools::Itertools;
+
 use crate::day::{Day, DayResult, PartResult};
 
 pub struct Day9 {
@@ -17,10 +19,14 @@ impl Day9 {
 impl Day for Day9 {
     fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
         let steps = parse_input(self.input)?;
-        let visited = run_part1(steps.into_iter());
+        let visited = run_part1(steps.clone().into_iter());
+        let visited_2 = run_part2(steps.into_iter());
         Ok(DayResult::new(
             PartResult::Success(format!("{} locations were visited by the tail", visited)),
-            PartResult::NotImplemented,
+            PartResult::Success(format!(
+                "{} locations were visited by a 10-knot rope",
+                visited_2
+            )),
         ))
     }
 }
@@ -90,14 +96,21 @@ fn parse_input(input: &str) -> Result<Vec<Step>, Box<dyn Error>> {
 
 fn run_part1(steps: impl Iterator<Item = Step>) -> usize {
     let mut rope = Rope::new(0, 0, 0, 0);
-    let mut tail_visited = HashSet::new();
-    tail_visited.insert(rope.tail);
+    do_steps_to_rope(rope, steps)
+}
 
+fn run_part2(steps: impl Iterator<Item = Step>) -> usize {
+    let mut rope = Rope::new_by_count(10);
+    do_steps_to_rope(rope, steps)
+}
+
+fn do_steps_to_rope(mut rope: Rope, steps: impl Iterator<Item = Step>) -> usize {
+    let mut tail_visited = HashSet::new();
+    tail_visited.insert(rope.tail());
     for step in steps {
         rope.apply_step(step);
-        tail_visited.insert(rope.tail);
+        tail_visited.insert(rope.tail());
     }
-
     tail_visited.len()
 }
 
@@ -110,14 +123,6 @@ struct Location {
 impl Location {
     fn new(x: isize, y: isize) -> Self {
         Self { x, y }
-    }
-
-    fn expand_move(&self, m: Move) -> impl Iterator<Item = Self> {
-        let mut loc = self.clone();
-        m.expand().map(move |s| {
-            loc = loc.apply_step(s);
-            loc.clone()
-        })
     }
 
     fn apply_step(&self, s: Step) -> Self {
@@ -158,52 +163,67 @@ impl Location {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Rope {
-    head: Location,
-    tail: Location,
+    knots: Vec<Location>,
 }
 
 impl Rope {
     fn new(hx: isize, hy: isize, tx: isize, ty: isize) -> Self {
         Self {
-            head: Location::new(hx, hy),
-            tail: Location::new(tx, ty),
+            knots: vec![Location::new(hx, hy), Location::new(tx, ty)],
         }
     }
 
+    fn new_by_count(count: usize) -> Self {
+        Self {
+            knots: std::iter::repeat(Location::new(0, 0)).take(count).collect(),
+        }
+    }
+
+    fn tail(&self) -> Location {
+        self.knots[self.knots.len() - 1]
+    }
+
     fn apply_step(&mut self, step: Step) {
-        self.head = self.head.apply_step(step);
+        self.knots[0] = self.knots[0].apply_step(step);
         self.correct_tail();
     }
 
     fn correct_tail(&mut self) {
-        if self.head.touches(&self.tail) {
+        let indexes = (0..self.knots.len()).tuple_windows().collect::<Vec<_>>();
+        for (i, j) in indexes {
+            Rope::correct_pair(*self.knots.get(i).unwrap(), self.knots.get_mut(j).unwrap())
+        }
+    }
+
+    fn correct_pair(head: Location, tail: &mut Location) {
+        if head.touches(tail) {
             return;
         }
-        match (self.head.x.cmp(&self.tail.x), self.head.y.cmp(&self.tail.y)) {
+        match (head.x.cmp(&tail.x), head.y.cmp(&tail.y)) {
             (Ordering::Less, Ordering::Less) => {
-                self.tail.x -= 1;
-                self.tail.y -= 1;
+                tail.x -= 1;
+                tail.y -= 1;
             }
             (Ordering::Less, Ordering::Equal) => {
-                if self.tail.x - self.head.x > 1 {
-                    self.tail.x -= 1
+                if tail.x - head.x > 1 {
+                    tail.x -= 1
                 }
             }
             (Ordering::Less, Ordering::Greater) => {
-                self.tail.x -= 1;
-                self.tail.y += 1;
+                tail.x -= 1;
+                tail.y += 1;
             }
-            (Ordering::Equal, Ordering::Less) => self.tail.y -= 1,
+            (Ordering::Equal, Ordering::Less) => tail.y -= 1,
             (Ordering::Equal, Ordering::Equal) => {}
-            (Ordering::Equal, Ordering::Greater) => self.tail.y += 1,
+            (Ordering::Equal, Ordering::Greater) => tail.y += 1,
             (Ordering::Greater, Ordering::Less) => {
-                self.tail.x += 1;
-                self.tail.y -= 1;
+                tail.x += 1;
+                tail.y -= 1;
             }
-            (Ordering::Greater, Ordering::Equal) => self.tail.x += 1,
+            (Ordering::Greater, Ordering::Equal) => tail.x += 1,
             (Ordering::Greater, Ordering::Greater) => {
-                self.tail.x += 1;
-                self.tail.y += 1;
+                tail.x += 1;
+                tail.y += 1;
             }
         }
     }
