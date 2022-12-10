@@ -69,6 +69,19 @@ impl Cpu {
     pub fn get_x(&self) -> i32 {
         self.x
     }
+
+    pub fn is_complete(&self) -> bool {
+        self.pc >= self.code.len()
+    }
+
+    /// Runs the program to completion, returning a vector containing the value of X at every cycle
+    pub fn run_to_completion(&mut self) -> Vec<i32> {
+        let mut result = Vec::new();
+        while !self.is_complete() {
+            result.push(self.cycle());
+        }
+        result
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
