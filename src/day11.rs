@@ -24,9 +24,9 @@ impl Day for Day11 {
 }
 
 struct Monkey {
-    items: Vec<u128>,
-    operation: Box<dyn Fn(u128) -> u128>,
-    test: u128,
+    items: Vec<u64>,
+    operation: Box<dyn Fn(u64) -> u64>,
+    test: u64,
     if_true: usize,
     if_false: usize,
     inspects: usize,
@@ -34,9 +34,9 @@ struct Monkey {
 
 impl Monkey {
     fn new(
-        items: Vec<u128>,
-        operation: Box<dyn Fn(u128) -> u128>,
-        test: u128,
+        items: Vec<u64>,
+        operation: Box<dyn Fn(u64) -> u64>,
+        test: u64,
         if_true: usize,
         if_false: usize,
     ) -> Self {
@@ -50,15 +50,15 @@ impl Monkey {
         }
     }
 
-    fn operation(&self, w: u128) -> u128 {
+    fn operation(&self, w: u64) -> u64 {
         (self.operation)(w)
     }
 
-    fn test(&self, w: u128) -> bool {
+    fn test(&self, w: u64) -> bool {
         w % self.test == 0
     }
 
-    fn add_item(&mut self, w: u128) {
+    fn add_item(&mut self, w: u64) {
         self.items.push(w)
     }
 
@@ -74,7 +74,7 @@ impl Monkey {
 fn run_monkey(
     id: usize,
     monkeys: &mut HashMap<usize, Monkey>,
-    worry_management_factor: Option<u128>,
+    worry_management_factor: Option<u64>,
 ) {
     // remove the monkey from the HashMap so that we can get a mutable borrow
     // later to update other monkeys
@@ -105,7 +105,7 @@ fn run_monkey(
     monkeys.insert(id, monkey);
 }
 
-fn run_monkeys(monkeys: &mut HashMap<usize, Monkey>, worry_management_factor: Option<u128>) {
+fn run_monkeys(monkeys: &mut HashMap<usize, Monkey>, worry_management_factor: Option<u64>) {
     let mut ids: Vec<usize> = monkeys.keys().copied().collect();
     ids.sort();
     for id in ids {
