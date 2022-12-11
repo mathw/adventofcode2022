@@ -71,8 +71,11 @@ impl Monkey {
     }
 }
 
-fn run_monkey(id: usize, monkeys: &mut HashMap<usize, Monkey>, part2_logic: bool) {
-    let part2_adjust = monkeys.values().map(|m| m.test).product::<u128>();
+fn run_monkey(
+    id: usize,
+    monkeys: &mut HashMap<usize, Monkey>,
+    worry_management_factor: Option<u128>,
+) {
     // remove the monkey from the HashMap so that we can get a mutable borrow
     // later to update other monkeys
     let mut monkey = monkeys.remove(&id).expect("Expect valid monkey ID");
@@ -80,8 +83,8 @@ fn run_monkey(id: usize, monkeys: &mut HashMap<usize, Monkey>, part2_logic: bool
     for item in items {
         monkey.inspect();
         let item = monkey.operation(item);
-        let item = if part2_logic {
-            item % part2_adjust
+        let item = if let Some(factor) = worry_management_factor {
+            item % factor
         } else {
             item / 3
         };
@@ -102,25 +105,28 @@ fn run_monkey(id: usize, monkeys: &mut HashMap<usize, Monkey>, part2_logic: bool
     monkeys.insert(id, monkey);
 }
 
-fn run_monkeys(monkeys: &mut HashMap<usize, Monkey>, part2_logic: bool) {
+fn run_monkeys(monkeys: &mut HashMap<usize, Monkey>, worry_management_factor: Option<u128>) {
     let mut ids: Vec<usize> = monkeys.keys().copied().collect();
     ids.sort();
     for id in ids {
-        run_monkey(id, monkeys, part2_logic);
-    }
-}
-
-fn adjust(w: u128, part2_logic: bool) -> u128 {
-    if !part2_logic {
-        w / 3
-    } else {
-        w
+        run_monkey(id, monkeys, worry_management_factor);
     }
 }
 
 fn run_rounds(monkeys: &mut HashMap<usize, Monkey>, rounds: usize, part2_logic: bool) {
+    // To manage worry in part 2, we multiply all the monkey's test divisors together
+    // and use the modulus of that with each item's worry level as an adjusted value after
+    // each time the monkey considers an item. This ensures all the divisibility tests for
+    // every monkey will still pass where they would if we were using arbitrarily-large integers
+    // This problem is designed to make sure we figure out something like this, because
+    // it will overflow even a u128 without some sort of adjustment.
+    let worry_management_factor = if part2_logic {
+        Some(monkeys.values().map(|m| m.test).product())
+    } else {
+        None
+    };
     for _ in 0..rounds {
-        run_monkeys(monkeys, part2_logic);
+        run_monkeys(monkeys, worry_management_factor);
     }
 }
 
@@ -188,7 +194,7 @@ fn input() -> HashMap<usize, Monkey> {
 #[test]
 fn test_run_monkey_0() {
     let mut monkeys = input();
-    run_monkey(0, &mut monkeys, false);
+    run_monkey(0, &mut monkeys, None);
     let monkey0 = monkeys
         .get(&0)
         .expect("Monkey 0 should be back in the HashMap");
@@ -204,7 +210,7 @@ fn test_run_monkey_0() {
 #[test]
 fn test_round_1() {
     let mut monkeys = input();
-    run_monkeys(&mut monkeys, false);
+    run_monkeys(&mut monkeys, None);
     assert_eq!(
         monkeys.get(&0).expect("Monkey 0 should exist").items,
         vec![20, 23, 27, 26],
