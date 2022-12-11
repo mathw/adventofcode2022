@@ -120,6 +120,8 @@ fn run_rounds(monkeys: &mut HashMap<usize, Monkey>, rounds: usize, part2_logic: 
     // every monkey will still pass where they would if we were using arbitrarily-large integers
     // This problem is designed to make sure we figure out something like this, because
     // it will overflow even a u128 without some sort of adjustment.
+    // Initially I thought I could just adjust for each monkey, but that doesn't account
+    // for how it's got to get the same divisibility result for every single monkey.
     let worry_management_factor = if part2_logic {
         Some(monkeys.values().map(|m| m.test).product())
     } else {
