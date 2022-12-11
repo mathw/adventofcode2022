@@ -11,6 +11,7 @@ mod common;
 mod day;
 mod day1;
 mod day10;
+mod day11;
 mod day2;
 mod day3;
 mod day4;
@@ -51,6 +52,7 @@ fn main() {
         "8" => run_day(8, || day8::Day8::new().run()),
         "9" => run_day(9, || day9::Day9::new().run()),
         "10" => run_day(10, || day10::Day10::new().run()),
+        "11" => run_day(11, || day11::Day11::new().run()),
         _ => log::error!("Unimplemented day {}", day),
     }
 }
