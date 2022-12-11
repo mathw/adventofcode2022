@@ -11,19 +11,22 @@ impl Day11 {
 impl Day for Day11 {
     fn run(&mut self) -> crate::day::Result {
         let mut monkeys = input();
-        run_rounds(&mut monkeys, 20);
+        run_rounds(&mut monkeys, 20, false);
         let part1_result = monkey_business(&monkeys);
+        let mut monkeys = input();
+        run_rounds(&mut monkeys, 10000, true);
+        let part2_result = monkey_business(&monkeys);
         Ok(DayResult::new(
             PartResult::Success(format!("Monkey business is {}", part1_result)),
-            PartResult::NotImplemented,
+            PartResult::Success(format!("Monkey business is {}", part2_result)),
         ))
     }
 }
 
 struct Monkey {
-    items: Vec<u64>,
-    operation: Box<dyn Fn(u64) -> u64>,
-    test: u64,
+    items: Vec<u128>,
+    operation: Box<dyn Fn(u128) -> u128>,
+    test: u128,
     if_true: usize,
     if_false: usize,
     inspects: usize,
@@ -31,9 +34,9 @@ struct Monkey {
 
 impl Monkey {
     fn new(
-        items: Vec<u64>,
-        operation: Box<dyn Fn(u64) -> u64>,
-        test: u64,
+        items: Vec<u128>,
+        operation: Box<dyn Fn(u128) -> u128>,
+        test: u128,
         if_true: usize,
         if_false: usize,
     ) -> Self {
@@ -47,15 +50,15 @@ impl Monkey {
         }
     }
 
-    fn operation(&self, w: u64) -> u64 {
+    fn operation(&self, w: u128) -> u128 {
         (self.operation)(w)
     }
 
-    fn test(&self, w: u64) -> bool {
+    fn test(&self, w: u128) -> bool {
         w % self.test == 0
     }
 
-    fn add_item(&mut self, w: u64) {
+    fn add_item(&mut self, w: u128) {
         self.items.push(w)
     }
 
@@ -68,7 +71,8 @@ impl Monkey {
     }
 }
 
-fn run_monkey(id: usize, monkeys: &mut HashMap<usize, Monkey>) {
+fn run_monkey(id: usize, monkeys: &mut HashMap<usize, Monkey>, part2_logic: bool) {
+    let part2_adjust = monkeys.values().map(|m| m.test).product::<u128>();
     // remove the monkey from the HashMap so that we can get a mutable borrow
     // later to update other monkeys
     let mut monkey = monkeys.remove(&id).expect("Expect valid monkey ID");
@@ -76,7 +80,11 @@ fn run_monkey(id: usize, monkeys: &mut HashMap<usize, Monkey>) {
     for item in items {
         monkey.inspect();
         let item = monkey.operation(item);
-        let item = adjust(item);
+        let item = if part2_logic {
+            item % part2_adjust
+        } else {
+            item / 3
+        };
         if monkey.test(item) {
             monkeys
                 .get_mut(&monkey.if_true)
@@ -94,21 +102,25 @@ fn run_monkey(id: usize, monkeys: &mut HashMap<usize, Monkey>) {
     monkeys.insert(id, monkey);
 }
 
-fn run_monkeys(monkeys: &mut HashMap<usize, Monkey>) {
+fn run_monkeys(monkeys: &mut HashMap<usize, Monkey>, part2_logic: bool) {
     let mut ids: Vec<usize> = monkeys.keys().copied().collect();
     ids.sort();
     for id in ids {
-        run_monkey(id, monkeys);
+        run_monkey(id, monkeys, part2_logic);
     }
 }
 
-fn adjust(w: u64) -> u64 {
-    w / 3
+fn adjust(w: u128, part2_logic: bool) -> u128 {
+    if !part2_logic {
+        w / 3
+    } else {
+        w
+    }
 }
 
-fn run_rounds(monkeys: &mut HashMap<usize, Monkey>, rounds: usize) {
+fn run_rounds(monkeys: &mut HashMap<usize, Monkey>, rounds: usize, part2_logic: bool) {
     for _ in 0..rounds {
-        run_monkeys(monkeys);
+        run_monkeys(monkeys, part2_logic);
     }
 }
 
@@ -176,7 +188,7 @@ fn input() -> HashMap<usize, Monkey> {
 #[test]
 fn test_run_monkey_0() {
     let mut monkeys = input();
-    run_monkey(0, &mut monkeys);
+    run_monkey(0, &mut monkeys, false);
     let monkey0 = monkeys
         .get(&0)
         .expect("Monkey 0 should be back in the HashMap");
@@ -192,7 +204,7 @@ fn test_run_monkey_0() {
 #[test]
 fn test_round_1() {
     let mut monkeys = input();
-    run_monkeys(&mut monkeys);
+    run_monkeys(&mut monkeys, false);
     assert_eq!(
         monkeys.get(&0).expect("Monkey 0 should exist").items,
         vec![20, 23, 27, 26],
@@ -224,6 +236,43 @@ fn test_round_1() {
 #[test]
 fn test_part_1() {
     let mut monkeys = input();
-    run_rounds(&mut monkeys, 20);
+    run_rounds(&mut monkeys, 20, false);
     assert_eq!(monkey_business(&monkeys), 10605);
+}
+
+#[test]
+fn test_part_2() {
+    let mut monkeys = input();
+    run_rounds(&mut monkeys, 10000, true);
+    assert_eq!(monkey_business(&monkeys), 2713310158);
+}
+
+#[test]
+fn test_part2_one_round() {
+    let mut monkeys = input();
+    run_rounds(&mut monkeys, 1, true);
+    assert_eq!(monkeys[&0].times_inspected(), 2);
+    assert_eq!(monkeys[&1].times_inspected(), 4);
+    assert_eq!(monkeys[&2].times_inspected(), 3);
+    assert_eq!(monkeys[&3].times_inspected(), 6);
+}
+
+#[test]
+fn test_part2_twenty_rounds() {
+    let mut monkeys = input();
+    run_rounds(&mut monkeys, 20, true);
+    assert_eq!(monkeys[&0].times_inspected(), 99);
+    assert_eq!(monkeys[&1].times_inspected(), 97);
+    assert_eq!(monkeys[&2].times_inspected(), 8);
+    assert_eq!(monkeys[&3].times_inspected(), 103);
+}
+
+#[test]
+fn test_part2_ten_thousand_rounds() {
+    let mut monkeys = input();
+    run_rounds(&mut monkeys, 10000, true);
+    assert_eq!(monkeys[&0].times_inspected(), 52166);
+    assert_eq!(monkeys[&1].times_inspected(), 47830);
+    assert_eq!(monkeys[&2].times_inspected(), 1938);
+    assert_eq!(monkeys[&3].times_inspected(), 52013);
 }
