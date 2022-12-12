@@ -231,6 +231,41 @@ impl<T> Grid<T> {
         self.height
     }
 
+    pub fn surrounding(
+        &self,
+        x: usize,
+        y: usize,
+    ) -> Result<Vec<(usize, usize)>, GridOperationError> {
+        if self.out_of_bounds(x, y) {
+            return Err(GridOperationError::IndexOutOfBounds(
+                x,
+                y,
+                self.width,
+                self.height,
+            ));
+        }
+
+        let mut s = Vec::new();
+
+        if x > 0 {
+            s.push((x - 1, y));
+        }
+
+        if x < self.max_x() {
+            s.push((x + 1, y));
+        }
+
+        if y > 0 {
+            s.push((x, y - 1));
+        }
+
+        if y < self.max_y() {
+            s.push((x, y + 1));
+        }
+
+        Ok(s)
+    }
+
     fn max_x(&self) -> usize {
         self.width - 1
     }

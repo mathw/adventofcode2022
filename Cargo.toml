@@ -12,3 +12,4 @@ simple_logger = { version = "1.13.0", default-features = false, features = ["col
 clap = "2.33.3"
 itertools = "0.10.5"
 regex = "1.7.0"
+petgraph = "0.6.2"
