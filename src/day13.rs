@@ -8,7 +8,7 @@ use chumsky::Parser;
 use itertools::Itertools;
 
 use self::parser::parser;
-use self::types::{Order, Value};
+use self::types::Value;
 use crate::day::{Day, DayResult, PartResult};
 
 pub struct Day13 {
@@ -34,59 +34,6 @@ impl Day for Day13 {
         ))
     }
 }
-
-fn compare_integers(left: u32, right: u32) -> Option<Order> {
-    match left.cmp(&right) {
-        Ordering::Less => Some(Order::Correct),
-        Ordering::Equal => None,
-        Ordering::Greater => Some(Order::Incorrect),
-    }
-}
-
-fn compare_lists<'a>(
-    left: &mut impl Iterator<Item = &'a Value>,
-    right: &mut impl Iterator<Item = &'a Value>,
-) -> Option<Order> {
-    match (left.next(), right.next()) {
-        (Some(_), None) => Some(Order::Incorrect),
-        (None, Some(_)) => Some(Order::Correct),
-        (Some(lv), Some(rv)) => match compare_values(lv, rv) {
-            None => compare_lists(left, right),
-            o => o,
-        },
-        (None, None) => None,
-    }
-}
-
-fn compare_values(left: &Value, right: &Value) -> Option<Order> {
-    match (left, right) {
-        (Value::List(l), Value::List(r)) => compare_lists(&mut l.iter(), &mut r.iter()),
-        (Value::List(l), Value::Integer(r)) => {
-            compare_lists(&mut l.iter(), &mut vec![Value::Integer(*r)].iter())
-        }
-        (Value::Integer(l), Value::List(r)) => {
-            compare_lists(&mut vec![Value::Integer(*l)].iter(), &mut r.iter())
-        }
-        (Value::Integer(l), Value::Integer(r)) => compare_integers(*l, *r),
-    }
-}
-
-impl PartialOrd for Value {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Value {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match compare_values(self, other) {
-            Some(Order::Correct) => Ordering::Less,
-            Some(Order::Incorrect) => Ordering::Greater,
-            None => Ordering::Equal,
-        }
-    }
-}
-
 fn parse_input_pairs(input: &str) -> Result<Vec<(Value, Value)>, String> {
     let mut results = Vec::new();
     let mut current_left = String::new();
@@ -122,7 +69,7 @@ fn run_part1(input: &[(Value, Value)]) -> usize {
         .iter()
         .enumerate()
         .filter_map(|(i, (left, right))| {
-            if compare_values(left, right) == Some(Order::Correct) {
+            if left.cmp(right) == Ordering::Less {
                 Some(i + 1)
             } else {
                 None
@@ -161,33 +108,33 @@ fn run_part2(input: Vec<(Value, Value)>) -> usize {
 
 #[test]
 fn test_compare_values1() {
-    order_test("[1,1,3,1,1]", "[1,1,5,1,1]", Some(Order::Correct));
+    order_test("[1,1,3,1,1]", "[1,1,5,1,1]", Ordering::Less);
 }
 
 #[test]
 fn test_compare_values2() {
-    order_test("[[1],[2,3,4]]", "[[1],4]", Some(Order::Correct));
+    order_test("[[1],[2,3,4]]", "[[1],4]", Ordering::Less);
 }
 
 #[test]
 fn test_compare_values3() {
-    order_test("[9]", "[[8,7,6]]", Some(Order::Incorrect));
+    order_test("[9]", "[[8,7,6]]", Ordering::Greater);
 }
 #[test]
 fn test_compare_values4() {
-    order_test("[[4,4],4,4]", "[[4,4],4,4,4]", Some(Order::Correct));
+    order_test("[[4,4],4,4]", "[[4,4],4,4,4]", Ordering::Less);
 }
 #[test]
 fn test_compare_values5() {
-    order_test("[7,7,7,7]", "[7,7,7]", Some(Order::Incorrect));
+    order_test("[7,7,7,7]", "[7,7,7]", Ordering::Greater);
 }
 #[test]
 fn test_compare_values6() {
-    order_test("[]", "[3]", Some(Order::Correct));
+    order_test("[]", "[3]", Ordering::Less);
 }
 #[test]
 fn test_compare_values7() {
-    order_test("[[[]]]", "[[]]", Some(Order::Incorrect));
+    order_test("[[[]]]", "[[]]", Ordering::Greater);
 }
 
 #[test]
@@ -195,16 +142,16 @@ fn test_compare_values8() {
     order_test(
         "[1,[2,[3,[4,[5,6,7]]]],8,9]",
         "[1,[2,[3,[4,[5,6,0]]]],8,9]",
-        Some(Order::Incorrect),
+        Ordering::Greater,
     );
 }
 
 #[cfg(test)]
-fn order_test(left: &str, right: &str, expected: Option<Order>) {
+fn order_test(left: &str, right: &str, expected: Ordering) {
     let left = parser::parser().parse_recovery(left).0.unwrap();
     let right = parser::parser().parse_recovery(right).0.unwrap();
 
-    assert_eq!(compare_values(&left, &right), expected);
+    assert_eq!(left.cmp(&right), expected);
 }
 
 #[test]
