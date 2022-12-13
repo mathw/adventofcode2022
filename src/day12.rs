@@ -22,9 +22,13 @@ impl Day12 {
 impl Day for Day12 {
     fn run(&mut self) -> crate::day::Result {
         let part1 = run_part1(self.input)?;
+        let part2 = run_part2(self.input)?;
         Ok(DayResult::new(
             PartResult::Success(format!("{} steps to the highest point", part1)),
-            PartResult::NotImplemented,
+            PartResult::Success(format!(
+                "{} steps on the shortest path from any zero elevation",
+                part2
+            )),
         ))
     }
 }
@@ -101,11 +105,32 @@ fn find_shortest_path_between(graph: &Terrain, start: NodeIndex, end: NodeIndex)
 
 fn run_part1(input: &str) -> Result<usize, Box<dyn Error>> {
     let (grid, start, end) = parse_to_grid(input)?;
-    println!("start point: {:?}, end point: {:?}", start, end);
     let (graph, node_indicies) = grid_to_graph(&grid);
     let start = node_indicies[&start];
     let end = node_indicies[&end];
     find_shortest_path_between(&graph, start, end).ok_or_else(|| "Unable to find path".into())
+}
+
+fn run_part2(input: &str) -> Result<usize, Box<dyn Error>> {
+    let (grid, start, end) = parse_to_grid(input)?;
+    let (graph, node_indicies) = grid_to_graph(&grid);
+    let zero_nodes = grid
+        .iter_coords()
+        .filter(|(x, y)| *grid.get(*x, *y).unwrap() == 0)
+        .map(|p| node_indicies[&p]);
+
+    let end = node_indicies[&end];
+    let mut shortest_path = usize::MAX;
+    for start in zero_nodes {
+        if let Some(length) = find_shortest_path_between(&graph, start, end) {
+            shortest_path = usize::min(length, shortest_path);
+        }
+    }
+    if shortest_path == usize::MAX {
+        Err("Unable to find any paths".into())
+    } else {
+        Ok(shortest_path)
+    }
 }
 
 #[test]
@@ -117,6 +142,17 @@ acctuvwj
 abdefghi";
     let result = run_part1(input).expect("A path should be found");
     assert_eq!(result, 31);
+}
+
+#[test]
+fn test_part2_sample() {
+    let input = "Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi";
+    let result = run_part2(input).expect("A path should be found");
+    assert_eq!(result, 29);
 }
 
 #[test]
