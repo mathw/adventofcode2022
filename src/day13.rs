@@ -2,8 +2,10 @@ mod parser;
 mod types;
 
 use std::cmp::Ordering;
+use std::iter;
 
 use chumsky::Parser;
+use itertools::Itertools;
 
 use self::parser::parser;
 use self::types::{Order, Value};
@@ -25,9 +27,10 @@ impl Day for Day13 {
     fn run(&mut self) -> crate::day::Result {
         let pairs = parse_input_pairs(self.input)?;
         let part1 = run_part1(&pairs);
+        let part2 = run_part2(pairs);
         Ok(DayResult::new(
             PartResult::Success(part1.to_string()),
-            PartResult::NotImplemented,
+            PartResult::Success(part2.to_string()),
         ))
     }
 }
@@ -65,6 +68,22 @@ fn compare_values(left: &Value, right: &Value) -> Option<Order> {
             compare_lists(&mut vec![Value::Integer(*l)].iter(), &mut r.iter())
         }
         (Value::Integer(l), Value::Integer(r)) => compare_integers(*l, *r),
+    }
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match compare_values(self, other) {
+            Some(Order::Correct) => Ordering::Less,
+            Some(Order::Incorrect) => Ordering::Greater,
+            None => Ordering::Equal,
+        }
     }
 }
 
@@ -110,6 +129,34 @@ fn run_part1(input: &[(Value, Value)]) -> usize {
             }
         })
         .sum()
+}
+
+fn run_part2(input: Vec<(Value, Value)>) -> usize {
+    // flatten the values
+    let divider1 = Value::List(vec![Value::List(vec![Value::Integer(2)])]);
+    let divider2 = Value::List(vec![Value::List(vec![Value::Integer(6)])]);
+    let mut all_values: Vec<Value> = input
+        .into_iter()
+        .flat_map(|(left, right)| iter::once(left).chain(iter::once(right)))
+        // add divider packets
+        .chain(iter::once(divider1.clone()))
+        .chain(iter::once(divider2.clone()))
+        .collect();
+    all_values.sort();
+    let first_index = all_values
+        .iter()
+        .find_position(|v| **v == divider1)
+        .unwrap()
+        .0
+        + 1;
+    let second_index = all_values
+        .iter()
+        .find_position(|v| **v == divider2)
+        .unwrap()
+        .0
+        + 1;
+
+    first_index * second_index
 }
 
 #[test]
@@ -216,4 +263,11 @@ fn test_sample_part1() {
     let pairs = parse_input_pairs(SAMPLE_INPUT).unwrap();
     let result = run_part1(&pairs);
     assert_eq!(result, 13);
+}
+
+#[test]
+fn test_sample_part2() {
+    let pairs = parse_input_pairs(SAMPLE_INPUT).unwrap();
+    let result = run_part2(pairs);
+    assert_eq!(result, 140);
 }
