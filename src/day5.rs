@@ -1,4 +1,4 @@
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 use regex::Regex;
 use std::{collections::HashMap, error::Error, str::FromStr};
 
@@ -14,17 +14,14 @@ impl Day5 {
     }
 }
 
-impl Day for Day5 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day5 {
+    fn run(&mut self) -> day::Result {
         let moves = parse_input_instructions(self.input)?;
         let stacks = stacks_input();
         let part1_answer = run_part1(&moves, stacks)?;
         let stacks = stacks_input();
         let part2_answer = run_part2(&moves, stacks)?;
-        Ok(DayResult::new(
-            PartResult::Success(part1_answer),
-            PartResult::Success(part2_answer),
-        ))
+        Ok((Some(part1_answer), Some(part2_answer)))
     }
 }
 

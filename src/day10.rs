@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use crate::common::cpu::Cpu;
+use crate::common::day;
 use crate::common::display::Display;
-use crate::day::{Day, DayResult, PartResult};
 
 pub struct Day10 {
     input: &'static str,
@@ -16,13 +16,13 @@ impl Day10 {
     }
 }
 
-impl Day for Day10 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day10 {
+    fn run(&mut self) -> day::Result {
         let part1 = run_part1(self.input)?;
         let part2 = run_part2(self.input)?;
-        Ok(DayResult::new(
-            PartResult::Success(format!("Signal strength is {}", part1)),
-            PartResult::Success(format!("\n{}", part2)),
+        Ok((
+            Some(format!("Signal strength is {}", part1)),
+            Some(format!("\n{}", part2)),
         ))
     }
 }

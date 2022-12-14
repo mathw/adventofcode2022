@@ -2,10 +2,7 @@ use std::{collections::HashMap, error::Error};
 
 use petgraph::{algo::dijkstra, stable_graph::NodeIndex, Graph};
 
-use crate::{
-    common::grid::Grid,
-    day::{Day, DayResult, PartResult},
-};
+use crate::common::{day, grid::Grid};
 
 pub struct Day12 {
     input: &'static str,
@@ -19,13 +16,13 @@ impl Day12 {
     }
 }
 
-impl Day for Day12 {
-    fn run(&mut self) -> crate::day::Result {
+impl day::Day for Day12 {
+    fn run(&mut self) -> day::Result {
         let part1 = run_part1(self.input)?;
         let part2 = run_part2(self.input)?;
-        Ok(DayResult::new(
-            PartResult::Success(format!("{} steps to the highest point", part1)),
-            PartResult::Success(format!(
+        Ok((
+            Some(format!("{} steps to the highest point", part1)),
+            Some(format!(
                 "{} steps on the shortest path from any zero elevation",
                 part2
             )),
@@ -112,7 +109,7 @@ fn run_part1(input: &str) -> Result<usize, Box<dyn Error>> {
 }
 
 fn run_part2(input: &str) -> Result<usize, Box<dyn Error>> {
-    let (grid, start, end) = parse_to_grid(input)?;
+    let (grid, _, end) = parse_to_grid(input)?;
     let (graph, node_indicies) = grid_to_graph(&grid);
     let zero_nodes = grid
         .iter_coords()

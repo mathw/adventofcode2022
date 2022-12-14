@@ -1,6 +1,6 @@
-use std::{error::Error, num::ParseIntError, str::FromStr};
+use std::{num::ParseIntError, str::FromStr};
 
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 
 pub struct Day1 {
     input: &'static str,
@@ -14,18 +14,18 @@ impl Day1 {
     }
 }
 
-impl Day for Day1 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day1 {
+    fn run(&mut self) -> day::Result {
         let elves = parse_input(self.input)?;
         let most_calorific_elf = most_calorific_elf(&elves)
             .ok_or_else(|| "There may not have been any elves".to_string())?;
         let part2 = top_three_most_calorific_elves(&elves);
-        Ok(DayResult::new(
-            PartResult::Success(format!(
+        Ok((
+            Some(format!(
                 "Most calorific elf has {} calories",
                 most_calorific_elf
             )),
-            PartResult::Success(format!(
+            Some(format!(
                 "Top 3 most calorific elves have {} calories",
                 part2
             )),

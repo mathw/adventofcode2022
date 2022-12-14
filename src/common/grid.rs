@@ -113,56 +113,6 @@ impl<T> Grid<T> {
             Ok(self.iter_below(x, y).all(predicate))
         }
     }
-
-    pub fn count_left_of(
-        &self,
-        x: usize,
-        y: usize,
-        predicate: impl Fn(&T) -> bool,
-    ) -> Result<usize, GridOperationError> {
-        if self.out_of_bounds(x, y) {
-            Err(self.index_out_of_bounds(x, y))
-        } else {
-            Ok(self.iter_left_of(x, y).filter(|i| predicate(i)).count())
-        }
-    }
-    pub fn count_right_of(
-        &self,
-        x: usize,
-        y: usize,
-        predicate: impl Fn(&T) -> bool,
-    ) -> Result<usize, GridOperationError> {
-        if self.out_of_bounds(x, y) {
-            Err(self.index_out_of_bounds(x, y))
-        } else {
-            Ok(self.iter_right_of(x, y).filter(|i| predicate(i)).count())
-        }
-    }
-    pub fn count_above(
-        &self,
-        x: usize,
-        y: usize,
-        predicate: impl Fn(&T) -> bool,
-    ) -> Result<usize, GridOperationError> {
-        if self.out_of_bounds(x, y) {
-            Err(self.index_out_of_bounds(x, y))
-        } else {
-            Ok(self.iter_above(x, y).filter(|i| predicate(i)).count())
-        }
-    }
-    pub fn count_below(
-        &self,
-        x: usize,
-        y: usize,
-        predicate: impl Fn(&T) -> bool,
-    ) -> Result<usize, GridOperationError> {
-        if self.out_of_bounds(x, y) {
-            Err(self.index_out_of_bounds(x, y))
-        } else {
-            Ok(self.iter_below(x, y).filter(|i| predicate(i)).count())
-        }
-    }
-
     fn index_out_of_bounds(&self, x: usize, y: usize) -> GridOperationError {
         GridOperationError::IndexOutOfBounds(x, y, self.width, self.height)
     }

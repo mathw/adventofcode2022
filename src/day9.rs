@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::HashSet, error::Error, str::FromStr};
 
 use itertools::Itertools;
 
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 
 pub struct Day9 {
     input: &'static str,
@@ -16,14 +16,14 @@ impl Day9 {
     }
 }
 
-impl Day for Day9 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day9 {
+    fn run(&mut self) -> day::Result {
         let steps = parse_input(self.input)?;
         let visited = run_part1(steps.clone().into_iter());
         let visited_2 = run_part2(steps.into_iter());
-        Ok(DayResult::new(
-            PartResult::Success(format!("{} locations were visited by the tail", visited)),
-            PartResult::Success(format!(
+        Ok((
+            Some(format!("{} locations were visited by the tail", visited)),
+            Some(format!(
                 "{} locations were visited by a 10-knot rope",
                 visited_2
             )),

@@ -2,7 +2,7 @@ use std::{error::Error, fmt::Display, iter, str::FromStr};
 
 use regex::Regex;
 
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 
 pub struct Day7 {
     input: &'static str,
@@ -16,15 +16,15 @@ impl Day7 {
     }
 }
 
-impl Day for Day7 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day7 {
+    fn run(&mut self) -> day::Result {
         let instructions = parse_input(self.input)?;
         let tree = build_directory_tree(&instructions)?;
         let part1_result = run_part1(&tree);
         let part2_result = run_part2(&tree);
-        Ok(DayResult::new(
-            PartResult::Success(part1_result.to_string()),
-            PartResult::Success(part2_result.to_string()),
+        Ok((
+            Some(part1_result.to_string()),
+            Some(part2_result.to_string()),
         ))
     }
 }

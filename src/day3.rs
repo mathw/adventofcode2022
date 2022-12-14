@@ -1,7 +1,6 @@
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 use itertools::Itertools;
 use std::collections::HashSet;
-use std::error::Error;
 
 pub struct Day3 {
     input: &'static str,
@@ -15,16 +14,16 @@ impl Day3 {
     }
 }
 
-impl Day for Day3 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day3 {
+    fn run(&mut self) -> day::Result {
         let part1_result = duplicated_item_priority_sum(self.input);
         let part2_result = sum_of_group_badge_priorities(self.input);
-        Ok(DayResult::new(
-            PartResult::Success(format!(
+        Ok((
+            Some(format!(
                 "Sum of duplicate item priorities is {}",
                 part1_result
             )),
-            PartResult::Success(format!("Sum of group badge priorities is {}", part2_result)),
+            Some(format!("Sum of group badge priorities is {}", part2_result)),
         ))
     }
 }

@@ -1,19 +1,16 @@
-use crate::day::Day;
-use crate::day::DayResult;
 use clap::{App, Arg};
-use std::error::Error;
 use std::time::Instant;
 
 #[macro_use]
 extern crate lazy_static;
 
 mod common;
-mod day;
 mod day1;
 mod day10;
 mod day11;
 mod day12;
 mod day13;
+mod day14;
 mod day2;
 mod day3;
 mod day4;
@@ -22,6 +19,8 @@ mod day6;
 mod day7;
 mod day8;
 mod day9;
+
+use crate::common::day::Day;
 
 fn main() {
     simple_logger::SimpleLogger::new().env().init().unwrap();
@@ -57,17 +56,26 @@ fn main() {
         "11" => run_day(11, || day11::Day11::new().run()),
         "12" => run_day(12, || day12::Day12::new().run()),
         "13" => run_day(13, || day13::Day13::new().run()),
+        "14" => run_day(14, || day14::Day14::new().run()),
         _ => log::error!("Unimplemented day {}", day),
     }
 }
 
-fn run_day(day_num: u8, day_func: impl Fn() -> Result<DayResult, Box<dyn Error>>) {
+fn run_day(day_num: u8, day_func: impl Fn() -> common::day::Result) {
     log::info!("Starting day {}", day_num);
     let now = Instant::now();
     match day_func() {
-        Ok(r) => log::info!("Day {} result:\n{}", day_num, r),
+        Ok(r) => log::info!("Day {} result:\n{}", day_num, render_result(r)),
         Err(e) => log::error!("{}", e),
     }
     let elapsed = Instant::now() - now;
     log::info!("Time taken: {} seconds", elapsed.as_secs_f32());
+}
+
+fn render_result((part1, part2): (Option<String>, Option<String>)) -> String {
+    format!(
+        "=== PART 1 ===\n\n{}\n\n=== PART 2 ===\n\n{}\n\n",
+        part1.unwrap_or_else(|| "Not implemented".to_owned()),
+        part2.unwrap_or_else(|| "Not implemented".to_owned())
+    )
 }

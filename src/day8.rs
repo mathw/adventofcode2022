@@ -1,7 +1,7 @@
 use std::error::Error;
 
+use crate::common::day;
 use crate::common::grid::Grid;
-use crate::day::{Day, DayResult, PartResult};
 
 pub struct Day8 {
     input: &'static str,
@@ -15,14 +15,14 @@ impl Day8 {
     }
 }
 
-impl Day for Day8 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day8 {
+    fn run(&mut self) -> day::Result {
         let plantation = parse_input(self.input)?;
         let part1_visible_trees = count_visible_trees(&plantation);
         let part2_most_scenic_score = find_most_scenic_tree(&plantation)?;
-        Ok(DayResult::new(
-            PartResult::Success(format!("{} trees are visible", part1_visible_trees)),
-            PartResult::Success(format!(
+        Ok((
+            Some(format!("{} trees are visible", part1_visible_trees)),
+            Some(format!(
                 "Most scenic tree score is {}",
                 part2_most_scenic_score
             )),

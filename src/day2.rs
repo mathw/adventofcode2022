@@ -1,6 +1,4 @@
-use std::error::Error;
-
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 
 pub struct Day2 {
     input: &'static str,
@@ -14,8 +12,8 @@ impl Day2 {
     }
 }
 
-impl Day for Day2 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day2 {
+    fn run(&mut self) -> day::Result {
         let moves = parse_input_for_part1(self.input);
 
         let total_score: u32 = moves.iter().map(|m| m.score()).sum();
@@ -25,10 +23,7 @@ impl Day for Day2 {
         let total_score: u32 = guide.iter().map(|g| g.score()).sum();
         let part2_result = format!("Total score with the corrected guide is {}", total_score);
 
-        Ok(DayResult::new(
-            PartResult::Success(part1_result),
-            PartResult::Success(part2_result),
-        ))
+        Ok((Some(part1_result), Some(part2_result)))
     }
 }
 

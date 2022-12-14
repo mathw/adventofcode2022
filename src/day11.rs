@@ -1,4 +1,4 @@
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 use std::collections::HashMap;
 pub struct Day11 {}
 
@@ -8,17 +8,17 @@ impl Day11 {
     }
 }
 
-impl Day for Day11 {
-    fn run(&mut self) -> crate::day::Result {
+impl day::Day for Day11 {
+    fn run(&mut self) -> day::Result {
         let mut monkeys = input();
         run_rounds(&mut monkeys, 20, false);
         let part1_result = monkey_business(&monkeys);
         let mut monkeys = input();
         run_rounds(&mut monkeys, 10000, true);
         let part2_result = monkey_business(&monkeys);
-        Ok(DayResult::new(
-            PartResult::Success(format!("Monkey business is {}", part1_result)),
-            PartResult::Success(format!("Monkey business is {}", part2_result)),
+        Ok((
+            Some(format!("Monkey business is {}", part1_result)),
+            Some(format!("Monkey business is {}", part2_result)),
         ))
     }
 }

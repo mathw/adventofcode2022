@@ -1,5 +1,4 @@
-use crate::day::{Day, DayResult, PartResult};
-use std::error::Error;
+use crate::common::day;
 
 pub struct Day6 {
     input: &'static str,
@@ -13,13 +12,13 @@ impl Day6 {
     }
 }
 
-impl Day for Day6 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day6 {
+    fn run(&mut self) -> day::Result {
         let part1_result = run_part1(self.input.chars())?;
         let part2_result = run_part2(self.input.chars())?;
-        Ok(DayResult::new(
-            PartResult::Success(format!("The first packet begins at {}", part1_result)),
-            PartResult::Success(format!("The first packet begins at {}", part2_result)),
+        Ok((
+            Some(format!("The first packet begins at {}", part1_result)),
+            Some(format!("The first packet begins at {}", part2_result)),
         ))
     }
 }

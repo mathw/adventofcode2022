@@ -9,7 +9,7 @@ use itertools::Itertools;
 
 use self::parser::parser;
 use self::types::Value;
-use crate::day::{Day, DayResult, PartResult};
+use crate::common::day;
 
 pub struct Day13 {
     input: &'static str,
@@ -23,15 +23,12 @@ impl Day13 {
     }
 }
 
-impl Day for Day13 {
-    fn run(&mut self) -> crate::day::Result {
+impl day::Day for Day13 {
+    fn run(&mut self) -> day::Result {
         let pairs = parse_input_pairs(self.input)?;
         let part1 = run_part1(&pairs);
         let part2 = run_part2(pairs);
-        Ok(DayResult::new(
-            PartResult::Success(part1.to_string()),
-            PartResult::Success(part2.to_string()),
-        ))
+        Ok((Some(part1.to_string()), Some(part2.to_string())))
     }
 }
 fn parse_input_pairs(input: &str) -> Result<Vec<(Value, Value)>, String> {

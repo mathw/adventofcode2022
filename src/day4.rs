@@ -1,5 +1,5 @@
-use crate::day::{Day, DayResult, PartResult};
-use std::{collections::HashSet, error::Error, fmt::Debug, str::FromStr};
+use crate::common::day;
+use std::{collections::HashSet, fmt::Debug, str::FromStr};
 
 pub struct Day4 {
     input: &'static str,
@@ -13,8 +13,8 @@ impl Day4 {
     }
 }
 
-impl Day for Day4 {
-    fn run(&mut self) -> Result<DayResult, Box<dyn Error>> {
+impl day::Day for Day4 {
+    fn run(&mut self) -> day::Result {
         let contained_pairs = all_contained_pairs(self.input).expect("Expected parseable input");
         let part1_result = format!(
             "There are {} pairs with a fully contained assignment",
@@ -26,10 +26,7 @@ impl Day for Day4 {
             "There are {} pairs with any overlap",
             overlapped_pairs.count()
         );
-        Ok(DayResult::new(
-            PartResult::Success(part1_result),
-            PartResult::Success(part2_result),
-        ))
+        Ok((Some(part1_result), Some(part2_result)))
     }
 }
 
