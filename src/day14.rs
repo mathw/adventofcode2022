@@ -224,34 +224,30 @@ enum StepResult {
 }
 
 fn fill_sand(grid: &mut Grid<Space>) -> Result<usize, GridOperationError> {
-    let mut sand_quantity = count_sand(grid);
+    let mut sand_quantity = 0;
     loop {
         if grid.get(500, 0)? == &Sand {
             // cave is full
             return Ok(sand_quantity);
         }
 
-        drop_sand((500, 0), grid)?;
-        let new_sand_quantity = count_sand(grid);
-        if new_sand_quantity == sand_quantity {
-            return Ok(new_sand_quantity);
+        if drop_sand((500, 0), grid)? {
+            sand_quantity += 1;
+        } else {
+            // no sand came to rest, all done!
+            return Ok(sand_quantity);
         }
-        sand_quantity = new_sand_quantity;
     }
 }
 
-fn count_sand(grid: &Grid<Space>) -> usize {
-    grid.iter_values().filter(|v| v == &&Sand).count()
-}
-
-fn drop_sand(sand: (usize, usize), grid: &mut Grid<Space>) -> Result<(), GridOperationError> {
+fn drop_sand(sand: (usize, usize), grid: &mut Grid<Space>) -> Result<bool, GridOperationError> {
     match step_sand(sand, grid)? {
         StepResult::Try(x, y) => drop_sand((x, y), grid),
         StepResult::Stop => {
             grid.set(sand.0, sand.1, Sand)?;
-            Ok(())
+            Ok(true)
         }
-        StepResult::Void => Ok(()),
+        StepResult::Void => Ok(false),
     }
 }
 

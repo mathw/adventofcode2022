@@ -125,10 +125,6 @@ impl<T> Grid<T> {
         (0..self.height).flat_map(move |y| (0..self.width).map(move |x| (x, y)))
     }
 
-    pub fn iter_values(&self) -> impl Iterator<Item = &T> + '_ {
-        self.content.iter()
-    }
-
     pub fn iter_coords_left_of(
         &self,
         x: usize,
