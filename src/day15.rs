@@ -1,5 +1,6 @@
-use std::{collections::HashSet, error::Error};
+use std::{collections::HashSet, error::Error, ops::RangeInclusive};
 
+use range_set::RangeSet;
 use rayon::prelude::*;
 
 use crate::common::day;
@@ -20,8 +21,8 @@ impl day::Day for Day15 {
     fn run(&mut self) -> day::Result {
         let sensors = parse_input(self.input)?;
         let count = count_positions_at_y_where_no_beacons_can_be_present(sensors.iter(), 2000000);
-        let position = find_beacon_in_range(0, 4000000, &sensors)?;
-        let tuning_frequency = position.x * 4000000 + position.y;
+        let beacon = find_beacon_in_range(0, 4000000, &sensors)?;
+        let tuning_frequency = tuning_frequency(&beacon);
         Ok((
             Some(count.to_string()),
             Some(format!(
@@ -79,10 +80,6 @@ impl Sensor {
 
         Some(Range::new(min_x_in_range, max_x_in_range))
     }
-
-    fn excludes_position(&self, position: &Position) -> bool {
-        self.beacon_range >= self.position.distance_from(position)
-    }
 }
 
 #[derive(Clone)]
@@ -117,10 +114,6 @@ impl Range {
 
     fn len(&self) -> usize {
         (0 - self.lower).unsigned_abs() as usize + self.upper.unsigned_abs() as usize
-    }
-
-    fn includes(&self, n: i32) -> bool {
-        n >= self.lower && n <= self.upper
     }
 }
 
@@ -248,47 +241,40 @@ fn test_part1_sample() {
 }
 
 fn find_beacon_in_range(min: i32, max: i32, sensors: &[Sensor]) -> Result<Position, String> {
-    let positions = (min..=max)
+    let beacons = (min..=max)
         .into_par_iter()
-        .filter_map(|search_y| {
-            if search_y % 100 == 0 {
-                println!("Searching y={}", search_y);
-            }
-            let mut possibles = values_not_covered_by(min, max, sensors, search_y);
-            let answer = possibles.next();
-            match answer {
-                None => None,
-                Some(a) => {
-                    if possibles.next().is_some() {
-                        Some(Err(format!(
-                            "Found more than one possible space for a beacon at y={}",
-                            search_y
-                        )))
-                    } else {
-                        Some(Ok(a))
-                    }
-                }
-            }
-        })
-        .collect::<Result<Vec<Position>, String>>()?;
-    if positions.len() == 1 {
-        return Ok(positions[0].clone());
+        .filter_map(|search_y| values_not_covered_by(min, max, sensors, search_y))
+        .collect::<Vec<Position>>();
+    if beacons.len() == 1 {
+        Ok(beacons[0].clone())
+    } else {
+        Err(format!(
+            "Found {} possible beacons! there should only be one! {:?}",
+            beacons.len(),
+            beacons
+        ))
     }
-
-    Err(format!("got {} positions!", positions.len()))
 }
 
-fn values_not_covered_by(
-    min: i32,
-    max: i32,
-    sensors: &[Sensor],
-    y: i32,
-) -> impl Iterator<Item = Position> + '_ {
-    let beacon_not_here = sensors.iter().map(|s| s.can_confirm_no_beacons_at_y(y));
-    // this is not quick
-    (min..=max)
-        .map(move |x| Position::new(x, y))
-        .filter(|p| !sensors.iter().any(|s| s.excludes_position(p)))
+fn values_not_covered_by(min: i32, max: i32, sensors: &[Sensor], y: i32) -> Option<Position> {
+    let beacon_not_here = sensors
+        .iter()
+        .filter_map(|s| s.can_confirm_no_beacons_at_y(y));
+
+    let mut rangeset = RangeSet::<[RangeInclusive<i32>; 2]>::from(min..=max);
+    for not_here in beacon_not_here {
+        rangeset.remove_range(not_here.lower..=not_here.upper);
+    }
+
+    if let Some(beacon_x_range) = rangeset.remove_range(min..=max) {
+        return beacon_x_range.iter().map(|x| Position::new(x, y)).next();
+    }
+
+    None
+}
+
+fn tuning_frequency(beacon: &Position) -> i64 {
+    (beacon.x as i64) * 4000000 + (beacon.y as i64)
 }
 
 #[test]
@@ -297,4 +283,5 @@ fn test_part2_sample() {
     let sensors = parse_input(input).expect("Input should be good");
     let result = find_beacon_in_range(0, 20, &sensors).expect("a location to be found");
     assert_eq!(result, Position::new(14, 11));
+    assert_eq!(tuning_frequency(&result), 56000011);
 }
