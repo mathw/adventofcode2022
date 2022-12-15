@@ -11,6 +11,7 @@ mod day11;
 mod day12;
 mod day13;
 mod day14;
+mod day15;
 mod day2;
 mod day3;
 mod day4;
@@ -40,10 +41,7 @@ fn main() {
     let day = matches.value_of("DAY").expect("Day must be provided");
 
     match day {
-        "1" => run_day(1, || {
-            let mut day = day1::Day1::new();
-            day.run()
-        }),
+        "1" => run_day(1, || day1::Day1::new().run()),
         "2" => run_day(2, || day2::Day2::new().run()),
         "3" => run_day(3, || day3::Day3::new().run()),
         "4" => run_day(4, || day4::Day4::new().run()),
@@ -57,6 +55,7 @@ fn main() {
         "12" => run_day(12, || day12::Day12::new().run()),
         "13" => run_day(13, || day13::Day13::new().run()),
         "14" => run_day(14, || day14::Day14::new().run()),
+        "15" => run_day(15, || day15::Day15::new().run()),
         _ => log::error!("Unimplemented day {}", day),
     }
 }
