@@ -1,5 +1,7 @@
 use std::{collections::HashSet, error::Error};
 
+use rayon::prelude::*;
+
 use crate::common::day;
 
 pub struct Day15 {
@@ -18,10 +20,19 @@ impl day::Day for Day15 {
     fn run(&mut self) -> day::Result {
         let sensors = parse_input(self.input)?;
         let count = count_positions_at_y_where_no_beacons_can_be_present(sensors.iter(), 2000000);
-        Ok((Some(count.to_string()), None))
+        let position = find_beacon_in_range(0, 4000000, &sensors)?;
+        let tuning_frequency = position.x * 4000000 + position.y;
+        Ok((
+            Some(count.to_string()),
+            Some(format!(
+                "tuning frequency of the distress beacon is {}",
+                tuning_frequency
+            )),
+        ))
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct Position {
     x: i32,
     y: i32,
@@ -37,6 +48,7 @@ impl Position {
     }
 }
 
+#[derive(Clone)]
 struct Sensor {
     position: Position,
     beacon: Position,
@@ -66,6 +78,10 @@ impl Sensor {
         let max_x_in_range = neutral_position.x + available_range;
 
         Some(Range::new(min_x_in_range, max_x_in_range))
+    }
+
+    fn excludes_position(&self, position: &Position) -> bool {
+        self.beacon_range >= self.position.distance_from(position)
     }
 }
 
@@ -102,6 +118,10 @@ impl Range {
     fn len(&self) -> usize {
         (0 - self.lower).unsigned_abs() as usize + self.upper.unsigned_abs() as usize
     }
+
+    fn includes(&self, n: i32) -> bool {
+        n >= self.lower && n <= self.upper
+    }
 }
 
 fn absolute_distance(a: i32, b: i32) -> u32 {
@@ -136,10 +156,10 @@ fn parse_input(input: &str) -> Result<Vec<Sensor>, Box<dyn Error>> {
     input.lines().map(|l| parse_input_line(l.trim())).collect()
 }
 
-fn count_positions_at_y_where_no_beacons_can_be_present<'a>(
+fn find_positions_at_y_where_no_beacons_can_be_present<'a>(
     sensors: impl Iterator<Item = &'a Sensor>,
     y: i32,
-) -> usize {
+) -> Vec<Range> {
     let mut ranges: Vec<Range> = Vec::new();
     let mut beacon_positions = HashSet::new();
     for sensor in sensors {
@@ -160,8 +180,17 @@ fn count_positions_at_y_where_no_beacons_can_be_present<'a>(
             }
         }
     }
-    ranges = normalise_ranges(&ranges);
-    ranges.into_iter().map(|r| r.len()).sum()
+    normalise_ranges(&ranges)
+}
+
+fn count_positions_at_y_where_no_beacons_can_be_present<'a>(
+    sensors: impl Iterator<Item = &'a Sensor>,
+    y: i32,
+) -> usize {
+    find_positions_at_y_where_no_beacons_can_be_present(sensors, y)
+        .into_iter()
+        .map(|r| r.len())
+        .sum()
 }
 
 fn normalise_ranges(ranges: &Vec<Range>) -> Vec<Range> {
@@ -216,4 +245,56 @@ fn test_part1_sample() {
     let sensors = parse_input(input).expect("Input should be good");
     let count = count_positions_at_y_where_no_beacons_can_be_present(sensors.iter(), 10);
     assert_eq!(count, 26);
+}
+
+fn find_beacon_in_range(min: i32, max: i32, sensors: &[Sensor]) -> Result<Position, String> {
+    let positions = (min..=max)
+        .into_par_iter()
+        .filter_map(|search_y| {
+            if search_y % 100 == 0 {
+                println!("Searching y={}", search_y);
+            }
+            let mut possibles = values_not_covered_by(min, max, sensors, search_y);
+            let answer = possibles.next();
+            match answer {
+                None => None,
+                Some(a) => {
+                    if possibles.next().is_some() {
+                        Some(Err(format!(
+                            "Found more than one possible space for a beacon at y={}",
+                            search_y
+                        )))
+                    } else {
+                        Some(Ok(a))
+                    }
+                }
+            }
+        })
+        .collect::<Result<Vec<Position>, String>>()?;
+    if positions.len() == 1 {
+        return Ok(positions[0].clone());
+    }
+
+    Err(format!("got {} positions!", positions.len()))
+}
+
+fn values_not_covered_by(
+    min: i32,
+    max: i32,
+    sensors: &[Sensor],
+    y: i32,
+) -> impl Iterator<Item = Position> + '_ {
+    let beacon_not_here = sensors.iter().map(|s| s.can_confirm_no_beacons_at_y(y));
+    // this is not quick
+    (min..=max)
+        .map(move |x| Position::new(x, y))
+        .filter(|p| !sensors.iter().any(|s| s.excludes_position(p)))
+}
+
+#[test]
+fn test_part2_sample() {
+    let input = include_str!("inputs/day15-sample.txt");
+    let sensors = parse_input(input).expect("Input should be good");
+    let result = find_beacon_in_range(0, 20, &sensors).expect("a location to be found");
+    assert_eq!(result, Position::new(14, 11));
 }
