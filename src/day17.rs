@@ -110,7 +110,7 @@ fn parse_jet(input: &str) -> impl Iterator<Item = Jet> + '_ {
 
 #[derive(Eq, PartialEq)]
 struct Chamber<const W: usize> {
-    rocks: HashMap<i64, [bool; W]>,
+    rocks: Vec<[bool; W]>,
     falling_rocks: HashSet<Point>,
     max_rock_height: i64,
     purge_offset: i64,
@@ -119,7 +119,7 @@ struct Chamber<const W: usize> {
 impl<const W: usize> Chamber<W> {
     fn new() -> Self {
         Self {
-            rocks: HashMap::new(),
+            rocks: Vec::with_capacity(20000),
             falling_rocks: HashSet::new(),
             max_rock_height: -1,
             purge_offset: 0,
@@ -145,8 +145,15 @@ impl<const W: usize> Chamber<W> {
     }
 
     fn add_stopped_rock(&mut self, rock: Point) {
-        let e = self.rocks.entry(rock.y).or_insert([false; W]);
-        e[rock.x as usize] = true;
+        if self.rocks.len() <= rock.y as usize {
+            // ensure enough rows are in the Vec
+            for _ in self.rocks.len()..=(rock.y as usize + 1) {
+                self.rocks.push([false; W]);
+            }
+        }
+
+        // update appropriate value
+        self.rocks[rock.y as usize][rock.x as usize] = true;
 
         self.max_rock_height = i64::max(self.max_rock_height, rock.y);
     }
@@ -202,25 +209,12 @@ impl<const W: usize> Chamber<W> {
             }
         }
 
-        println!("pruning to y={}", y);
         // remove everything below that y which we haven't
         // previously removed
-        for remove_y in 0..y {
-            self.rocks.remove(&remove_y);
-        }
+        self.rocks.drain(0..(y as usize));
 
         self.purge_offset += y;
-
-        // rewrite indexes back to 0
-        self.rocks = self
-            .rocks
-            .par_drain()
-            .map(|(ly, rs)| (ly - y, rs))
-            .collect();
-
         self.max_rock_height -= y;
-        println!("{}", self);
-        panic!("Pruned {} lines, offset now {}", y, self.purge_offset);
     }
 
     fn is_full_at(&self, y: i64) -> bool {
@@ -228,7 +222,7 @@ impl<const W: usize> Chamber<W> {
     }
 
     fn get_at_y(&self, y: i64) -> &[bool; W] {
-        self.rocks.get(&y).unwrap_or(&[false; W])
+        self.rocks.get(y as usize).unwrap_or(&[false; W])
     }
 
     fn rock_at(&self, x: usize, y: i64) -> bool {
@@ -239,17 +233,12 @@ impl<const W: usize> Chamber<W> {
         self.rock_at(p.x as usize, p.y)
     }
 
-    fn top_n_lines(&self, n: usize) -> Vec<(i64, [bool; W])> {
-        let max_y = self.max_rock_height;
-        let min_y = i64::max(max_y - n as i64, 0);
-        (min_y..=max_y)
-            .map(|y| (y, self.rocks[&y]))
-            .map(|(y, r)| (y - min_y, r))
-            .collect()
-    }
-
     fn rock_height(&self) -> u64 {
-        self.max_rock_height as u64 + 1 + self.purge_offset as u64
+        if self.max_rock_height == -1 {
+            0
+        } else {
+            self.max_rock_height as u64 + 1 + self.purge_offset as u64
+        }
     }
 }
 
@@ -285,41 +274,133 @@ impl<const W: usize> Display for Chamber<W> {
     }
 }
 
-fn run_n_cycles(input: &str, cycles: usize) -> u64 {
-    let jets: Vec<Jet> = parse_jet(input).collect();
-    let pieces: Vec<Piece> = pieces().collect();
-    let mut current_jet = 0;
-    let mut current_piece = 0;
-    let mut chamber: Chamber<7> = Chamber::new();
-    let start_time = std::time::Instant::now();
-    let mut height_after_previous_cycle = 0;
-    'rock: for cycle_count in 1..=cycles {
-        let piece = &pieces[current_piece];
-        current_piece = (current_piece + 1) % pieces.len();
-        if cycle_count % 1000000 == 0 {
-            println!(
-                "Done {} in {} seconds with {} lines in RAM",
-                cycle_count,
-                start_time.elapsed().as_secs(),
-                chamber.rocks.len()
-            );
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+struct Memo<const W: usize> {
+    piece_index: usize,
+    jet_index: usize,
+    rocks: Vec<[bool; W]>,
+}
+
+#[derive(Debug)]
+struct MemoData {
+    added_height: u64,
+}
+
+struct MemoisedChamber<const W: usize> {
+    memory: HashMap<Memo<W>, MemoData>,
+    memo_hits: HashMap<Memo<W>, usize>,
+    chamber: Chamber<W>,
+    pieces: Vec<Piece>,
+    jets: Vec<Jet>,
+    current_piece: usize,
+    current_jet: usize,
+    rock_height: u64,
+    is_repeating: bool,
+    is_repeating_repeating: bool,
+}
+
+impl<const W: usize> MemoisedChamber<W> {
+    fn new(pieces: Vec<Piece>, jets: Vec<Jet>) -> Self {
+        Self {
+            memory: HashMap::new(),
+            chamber: Chamber::new(),
+            pieces,
+            jets,
+            current_piece: 0,
+            current_jet: 0,
+            rock_height: 0,
+            is_repeating: false,
+            is_repeating_repeating: false,
+            memo_hits: HashMap::new(),
         }
-        chamber.add_rock(piece);
+    }
+
+    fn get_next_piece(&mut self) -> Piece {
+        let piece = self.pieces[self.current_piece].clone();
+        self.current_piece = (self.current_piece + 1) % self.pieces.len();
+        piece
+    }
+
+    fn get_next_jet(&mut self) -> Jet {
+        let jet = self.jets[self.current_jet];
+        self.current_jet = (self.current_jet + 1) % self.jets.len();
+        jet
+    }
+
+    fn run_rock(&mut self) -> u64 {
+        let key = self.memo_key();
+        if let Some(data) = self.memory.get(&key) {
+            self.rock_height += data.added_height;
+            if !self.is_repeating {
+                println!("Started repeating");
+            }
+            self.is_repeating = true;
+        } else {
+            if self.is_repeating {
+                panic!("Repetition cycle is broken");
+            }
+            self.run_novel_rock();
+        }
+
+        self.rock_height
+    }
+
+    fn run_novel_rock(&mut self) {
+        let start_piece = self.current_piece;
+        let start_jet = self.current_jet;
+        let start_height = self.chamber.rock_height();
+        let start_rocks = self.chamber.rocks.clone();
+        let piece = self.get_next_piece();
+        self.chamber.add_rock(&piece);
         loop {
-            let jet = jets[current_jet];
-            current_jet = (current_jet + 1) % jets.len();
-            chamber.apply_jet(jet);
-            if chamber.drop_rocks() {
-                // this rock is done, do the next
-                println!("Cycle {}", cycle_count);
-                println!("{}", chamber);
-                chamber.prune();
-                height_after_previous_cycle = chamber.rock_height();
-                continue 'rock;
+            let jet = self.get_next_jet();
+            self.chamber.apply_jet(jet);
+            if self.chamber.drop_rocks() {
+                self.chamber.prune();
+                let added_height = self.chamber.rock_height() - start_height;
+                let e = self.memory.insert(
+                    Memo {
+                        piece_index: start_piece,
+                        jet_index: start_jet,
+                        rocks: start_rocks,
+                    },
+                    MemoData { added_height },
+                );
+                self.rock_height += added_height;
+                break;
             }
         }
     }
-    height_after_previous_cycle
+
+    fn memo_key(&self) -> Memo<W> {
+        Memo {
+            jet_index: self.current_jet,
+            piece_index: self.current_piece,
+            rocks: self.chamber.rocks.clone(),
+        }
+    }
+}
+
+fn run_n_cycles(input: &str, cycles: usize) -> u64 {
+    let jets: Vec<Jet> = parse_jet(input).collect();
+    let pieces: Vec<Piece> = pieces().collect();
+    let mut chamber: MemoisedChamber<7> = MemoisedChamber::new(pieces, jets);
+    let mut current_height = 0;
+    let start_time = std::time::Instant::now();
+    for cycle_count in 1..=cycles {
+        if cycle_count % 1000000 == 0 {
+            let time_remaining = ((start_time.elapsed() / cycle_count as u32) * cycles as u32)
+                - start_time.elapsed();
+            println!(
+                "Done {} in {}s, {}s estimated remaining",
+                cycle_count,
+                start_time.elapsed().as_secs(),
+                time_remaining.as_secs()
+            );
+        }
+        current_height = chamber.run_rock()
+    }
+    current_height
 }
 
 #[test]
