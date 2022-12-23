@@ -388,14 +388,11 @@ fn run_n_cycles(input: &str, cycles: usize) -> u64 {
     let mut current_height = 0;
     let start_time = std::time::Instant::now();
     for cycle_count in 1..=cycles {
-        if cycle_count % 1000000 == 0 {
-            let time_remaining = ((start_time.elapsed() / cycle_count as u32) * cycles as u32)
-                - start_time.elapsed();
+        if cycle_count % 10000000 == 0 {
             println!(
-                "Done {} in {}s, {}s estimated remaining",
+                "Done {} in {}s",
                 cycle_count,
-                start_time.elapsed().as_secs(),
-                time_remaining.as_secs()
+                start_time.elapsed().as_secs()
             );
         }
         current_height = chamber.run_rock()
